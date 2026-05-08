@@ -82,10 +82,10 @@ class LearnDash_Source_Adapter implements Source_Adapter {
 				'status'           => $post->post_status,
 				'author_id'        => (int) $post->post_author,
 				'menu_order'       => (int) $post->menu_order,
-				'lesson_orderby'   => (string) ( $settings['course_lesson_orderby'] ?? '' ),
-				'lesson_order'     => (string) ( $settings['course_lesson_order'] ?? '' ),
-				'price_type'       => (string) ( $settings['course_price_type'] ?? '' ),
-				'prerequisite'     => $this->normalize_int_list( $settings['course_prerequisite'] ?? array() ),
+				'lesson_orderby'   => (string) ( $settings['sfwd-courses_course_lesson_orderby'] ?? '' ),
+				'lesson_order'     => (string) ( $settings['sfwd-courses_course_lesson_order'] ?? '' ),
+				'price_type'       => (string) ( $settings['sfwd-courses_course_price_type'] ?? '' ),
+				'prerequisite'     => $this->normalize_int_list( $settings['sfwd-courses_course_prerequisite'] ?? array() ),
 			);
 		}
 	}
@@ -103,35 +103,23 @@ class LearnDash_Source_Adapter implements Source_Adapter {
 			}
 
 			$settings    = $this->settings_array( $post_id, self::META_QUIZ_SETTINGS );
-			$pro_quiz_id = (int) ( $settings['quiz_pro'] ?? 0 );
+			$pro_quiz_id = (int) ( $settings['sfwd-quiz_quiz_pro'] ?? 0 );
 			$master_row  = $pro_quiz_id ? $this->fetch_pro_quiz_master( $pro_quiz_id ) : null;
-
-			$source_lesson_id = (int) ( $settings['lesson'] ?? 0 );
-			$source_course_id = (int) ( $settings['course'] ?? 0 );
-			if ( ! $source_course_id && $source_lesson_id ) {
-				$source_course_id = $this->resolve_lesson_course(
-					$source_lesson_id,
-					$this->settings_array( $source_lesson_id, self::META_LESSON_SETTINGS )
-				);
-			}
-			if ( ! $source_lesson_id ) {
-				$source_lesson_id = (int) wp_get_post_parent_id( $post_id );
-			}
 
 			yield array(
 				'source_id'          => (int) $post_id,
-				'source_lesson_id'   => $source_lesson_id,
-				'source_course_id'   => $source_course_id,
+				'source_lesson_id'   => (int) ( $settings['sfwd-quiz_lesson'] ?? 0 ),
+				'source_course_id'   => (int) ( $settings['sfwd-quiz_course'] ?? 0 ),
 				'source_pro_quiz_id' => $pro_quiz_id,
 				'title'              => $post->post_title,
 				'content'            => $post->post_content,
 				'status'             => $post->post_status,
-				'pass_required'      => ! empty( $settings['passingpercentage'] ) || ! empty( $settings['threshold'] ),
+				'pass_required'      => ! empty( $settings['sfwd-quiz_passingpercentage'] ) || ! empty( $settings['sfwd-quiz_threshold'] ),
 				'passmark'           => $this->normalize_passmark( $settings ),
 				'random_questions'   => $master_row ? (bool) $master_row->question_random : false,
 				'random_answers'     => $master_row ? (bool) $master_row->answer_random : false,
 				'time_limit'         => $master_row ? (int) $master_row->time_limit : 0,
-				'attempts_allowed'   => (string) ( $settings['repeats'] ?? '' ),
+				'attempts_allowed'   => (string) ( $settings['sfwd-quiz_repeats'] ?? '' ),
 			);
 		}
 	}
@@ -194,6 +182,9 @@ class LearnDash_Source_Adapter implements Source_Adapter {
 	 */
 	private function read_lesson_like( string $post_type, bool $is_topic ): iterable {
 		$settings_key = $is_topic ? self::META_TOPIC_SETTINGS : self::META_LESSON_SETTINGS;
+		$prefix       = $is_topic ? 'sfwd-topic_' : 'sfwd-lessons_';
+		$sample_key   = $prefix . ( $is_topic ? 'sample_topic' : 'sample_lesson' );
+		$duration_key = $prefix . ( $is_topic ? 'topic_duration' : 'lesson_duration' );
 
 		foreach ( $this->paginated_post_ids( $post_type ) as $post_id ) {
 			$post = get_post( $post_id );
@@ -203,23 +194,19 @@ class LearnDash_Source_Adapter implements Source_Adapter {
 
 			$settings = $this->settings_array( $post_id, $settings_key );
 
-			$source_course_id = $is_topic
-				? $this->resolve_topic_course( (int) $post_id, (int) ( $settings['lesson'] ?? 0 ) )
-				: $this->resolve_lesson_course( (int) $post_id, $settings );
-
 			yield array(
-				'source_id'           => (int) $post_id,
-				'source_course_id'    => $source_course_id,
-				'source_lesson_parent' => $is_topic ? (int) ( $settings['lesson'] ?? 0 ) : 0,
-				'is_topic'            => $is_topic,
-				'title'               => $post->post_title,
-				'content'             => $post->post_content,
-				'excerpt'             => $post->post_excerpt,
-				'status'              => $post->post_status,
-				'author_id'           => (int) $post->post_author,
-				'menu_order'          => (int) $post->menu_order,
-				'sample'              => ! empty( $settings[ $is_topic ? 'sample_topic' : 'sample_lesson' ] ),
-				'duration'            => (string) ( $settings[ $is_topic ? 'topic_duration' : 'lesson_duration' ] ?? '' ),
+				'source_id'            => (int) $post_id,
+				'source_course_id'     => (int) get_post_meta( $post_id, 'course_id', true ),
+				'source_lesson_parent' => $is_topic ? (int) get_post_meta( $post_id, 'lesson_id', true ) : 0,
+				'is_topic'             => $is_topic,
+				'title'                => $post->post_title,
+				'content'              => $post->post_content,
+				'excerpt'              => $post->post_excerpt,
+				'status'               => $post->post_status,
+				'author_id'            => (int) $post->post_author,
+				'menu_order'           => (int) $post->menu_order,
+				'sample'               => ! empty( $settings[ $sample_key ] ),
+				'duration'             => (string) ( $settings[ $duration_key ] ?? '' ),
 			);
 		}
 	}
@@ -253,51 +240,6 @@ class LearnDash_Source_Adapter implements Source_Adapter {
 		} while ( $returned === $batch_size );
 	}
 
-	/**
-	 * Resolves a lesson's owning course. LD has stored the link three different ways
-	 * across versions: inside the `_sfwd-lessons['lesson_course']` serialized field,
-	 * as a standalone `course_id` post meta, and via WordPress post hierarchy. Try each.
-	 */
-	private function resolve_lesson_course( int $lesson_post_id, array $lesson_settings ): int {
-		$course_id = (int) ( $lesson_settings['lesson_course'] ?? 0 );
-		if ( $course_id ) {
-			return $course_id;
-		}
-		$course_id = (int) get_post_meta( $lesson_post_id, 'course_id', true );
-		if ( $course_id ) {
-			return $course_id;
-		}
-		return (int) wp_get_post_parent_id( $lesson_post_id );
-	}
-
-	/**
-	 * Resolves a topic's owning course. Topics live under a parent lesson which lives under
-	 * a course; modern LD also stores `course_id` directly on the topic. Try the direct
-	 * meta, then the parent lesson's resolution, then the post-hierarchy walk.
-	 */
-	private function resolve_topic_course( int $topic_post_id, int $parent_lesson_id ): int {
-		$course_id = (int) get_post_meta( $topic_post_id, 'course_id', true );
-		if ( $course_id ) {
-			return $course_id;
-		}
-
-		if ( $parent_lesson_id ) {
-			$course_id = $this->resolve_lesson_course(
-				$parent_lesson_id,
-				$this->settings_array( $parent_lesson_id, self::META_LESSON_SETTINGS )
-			);
-			if ( $course_id ) {
-				return $course_id;
-			}
-		}
-
-		$lesson_id = (int) wp_get_post_parent_id( $topic_post_id );
-		if ( $lesson_id ) {
-			return (int) wp_get_post_parent_id( $lesson_id );
-		}
-		return 0;
-	}
-
 	private function settings_array( int $post_id, string $meta_key ): array {
 		$value = get_post_meta( $post_id, $meta_key, true );
 		return is_array( $value ) ? $value : array();
@@ -308,11 +250,11 @@ class LearnDash_Source_Adapter implements Source_Adapter {
 	 * `threshold` is stored 0-1 and is scaled up.
 	 */
 	private function normalize_passmark( array $settings ): float {
-		if ( isset( $settings['passingpercentage'] ) ) {
-			return (float) $settings['passingpercentage'];
+		if ( isset( $settings['sfwd-quiz_passingpercentage'] ) ) {
+			return (float) $settings['sfwd-quiz_passingpercentage'];
 		}
-		if ( isset( $settings['threshold'] ) ) {
-			return (float) $settings['threshold'] * 100;
+		if ( isset( $settings['sfwd-quiz_threshold'] ) ) {
+			return (float) $settings['sfwd-quiz_threshold'] * 100;
 		}
 		return 0.0;
 	}
