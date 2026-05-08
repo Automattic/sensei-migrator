@@ -18,17 +18,15 @@ class LearnDash_Source_Adapter implements Source_Adapter {
 
 	const SLUG = 'learndash';
 
-	const POST_TYPE_COURSE   = 'sfwd-courses';
-	const POST_TYPE_LESSON   = 'sfwd-lessons';
-	const POST_TYPE_TOPIC    = 'sfwd-topic';
-	const POST_TYPE_QUIZ     = 'sfwd-quiz';
-	const POST_TYPE_QUESTION = 'sfwd-question';
+	const POST_TYPE_COURSE = 'sfwd-courses';
+	const POST_TYPE_LESSON = 'sfwd-lessons';
+	const POST_TYPE_TOPIC  = 'sfwd-topic';
+	const POST_TYPE_QUIZ   = 'sfwd-quiz';
 
-	const META_COURSE_SETTINGS   = '_sfwd-courses';
-	const META_LESSON_SETTINGS   = '_sfwd-lessons';
-	const META_TOPIC_SETTINGS    = '_sfwd-topic';
-	const META_QUIZ_SETTINGS     = '_sfwd-quiz';
-	const META_QUESTION_SETTINGS = '_sfwd-question';
+	const META_COURSE_SETTINGS = '_sfwd-courses';
+	const META_LESSON_SETTINGS = '_sfwd-lessons';
+	const META_TOPIC_SETTINGS  = '_sfwd-topic';
+	const META_QUIZ_SETTINGS   = '_sfwd-quiz';
 
 	const COUNTED_STATUSES = array( 'publish', 'draft', 'private', 'future', 'pending' );
 
