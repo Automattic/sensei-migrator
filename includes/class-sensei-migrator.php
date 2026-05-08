@@ -95,7 +95,11 @@ class Sensei_Migrator {
 				SENSEI_MIGRATOR_MIN_SENSEI_VERSION,
 				SENSEI_LMS_VERSION
 			)
-			: __( '<strong>Sensei Migrator</strong> requires that the plugin <strong>Sensei LMS</strong> is installed and activated.', 'sensei-migrator' );
+			: sprintf(
+				/* translators: %s: required Sensei version */
+				__( '<strong>Sensei Migrator</strong> requires that the plugin <strong>Sensei LMS</strong> (minimum version: <strong>%s</strong>) is installed and activated.', 'sensei-migrator' ),
+				SENSEI_MIGRATOR_MIN_SENSEI_VERSION
+			);
 
 		echo '<div class="error"><p>';
 		echo wp_kses( $message, array( 'strong' => array() ) );
