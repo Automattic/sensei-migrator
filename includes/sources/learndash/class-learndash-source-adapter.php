@@ -138,7 +138,7 @@ class LearnDash_Source_Adapter implements Source_Adapter {
 		global $wpdb;
 
 		$table = $this->pro_quiz_table( 'question' );
-		if ( ! $this->table_exists( $table ) ) {
+		if ( null === $table ) {
 			return;
 		}
 
@@ -347,7 +347,7 @@ class LearnDash_Source_Adapter implements Source_Adapter {
 	private function count_pro_quiz_questions(): int {
 		global $wpdb;
 		$table = $this->pro_quiz_table( 'question' );
-		if ( ! $this->table_exists( $table ) ) {
+		if ( null === $table ) {
 			return 0;
 		}
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery
@@ -357,7 +357,7 @@ class LearnDash_Source_Adapter implements Source_Adapter {
 	private function fetch_pro_quiz_master( int $pro_quiz_id ): ?\stdClass {
 		global $wpdb;
 		$table = $this->pro_quiz_table( 'master' );
-		if ( ! $this->table_exists( $table ) ) {
+		if ( null === $table ) {
 			return null;
 		}
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery
@@ -366,19 +366,23 @@ class LearnDash_Source_Adapter implements Source_Adapter {
 	}
 
 	/**
-	 * Build the table name for a WP-Pro-Quiz table.
-	 *
-	 * LearnDash 3.x uses `{$wpdb->prefix}learndash_pro_quiz_<suffix>`. Older WP-Pro-Quiz
-	 * installations used `{$wpdb->prefix}wp_pro_quiz_<suffix>`. Try the LD-namespaced
-	 * name first; fall back to the legacy name if needed.
+	 * Resolves the actual WP-Pro-Quiz table name for a given suffix. LearnDash 3.x uses
+	 * `{$wpdb->prefix}learndash_pro_quiz_<suffix>`; older WP-Pro-Quiz installations used
+	 * `{$wpdb->prefix}wp_pro_quiz_<suffix>`. Returns null if neither exists so callers
+	 * can distinguish "site has no quiz data" from "we couldn't find the table."
 	 */
-	private function pro_quiz_table( string $suffix ): string {
+	private function pro_quiz_table( string $suffix ): ?string {
 		global $wpdb;
-		$ld_namespaced = $wpdb->prefix . 'learndash_pro_quiz_' . $suffix;
-		if ( $this->table_exists( $ld_namespaced ) ) {
-			return $ld_namespaced;
+		$candidates = array(
+			$wpdb->prefix . 'learndash_pro_quiz_' . $suffix,
+			$wpdb->prefix . 'wp_pro_quiz_' . $suffix,
+		);
+		foreach ( $candidates as $candidate ) {
+			if ( $this->table_exists( $candidate ) ) {
+				return $candidate;
+			}
 		}
-		return $wpdb->prefix . 'wp_pro_quiz_' . $suffix;
+		return null;
 	}
 
 	private function table_exists( string $table ): bool {
