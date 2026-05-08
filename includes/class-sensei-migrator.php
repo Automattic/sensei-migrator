@@ -95,24 +95,24 @@ class Sensei_Migrator {
 	 * @access private
 	 */
 	public static function render_sensei_dependency_notice(): void {
-		if ( ! current_user_can( 'activate_plugins' ) ) {
-			return;
-		}
+		$screen        = get_current_screen();
+		$valid_screens = array( 'dashboard', 'plugins', 'plugins-network' );
 
-		$screen = get_current_screen();
-		if ( ! $screen || ! in_array( $screen->id, array( 'dashboard', 'plugins', 'plugins-network' ), true ) ) {
+		if ( ! current_user_can( 'activate_plugins' ) || ! $screen || ! in_array( $screen->id, $valid_screens, true ) ) {
 			return;
 		}
 
 		$message = defined( 'SENSEI_LMS_VERSION' )
 			? sprintf(
 				/* translators: 1: required Sensei version, 2: detected Sensei version */
-				esc_html__( 'Sensei Migrator requires Sensei LMS %1$s or later. Detected version: %2$s.', 'sensei-migrator' ),
-				esc_html( SENSEI_MIGRATOR_MIN_SENSEI_VERSION ),
-				esc_html( SENSEI_LMS_VERSION )
+				__( '<strong>Sensei Migrator</strong> requires <strong>Sensei LMS</strong> (minimum version: <strong>%1$s</strong>). Detected version: <strong>%2$s</strong>.', 'sensei-migrator' ),
+				SENSEI_MIGRATOR_MIN_SENSEI_VERSION,
+				SENSEI_LMS_VERSION
 			)
-			: esc_html__( 'Sensei Migrator requires Sensei LMS to be installed and activated.', 'sensei-migrator' );
+			: __( '<strong>Sensei Migrator</strong> requires that the plugin <strong>Sensei LMS</strong> is installed and activated.', 'sensei-migrator' );
 
-		wp_admin_notice( $message, array( 'type' => 'error' ) );
+		echo '<div class="error"><p>';
+		echo wp_kses( $message, array( 'strong' => array() ) );
+		echo '</p></div>';
 	}
 }
