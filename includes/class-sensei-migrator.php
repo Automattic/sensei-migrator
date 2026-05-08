@@ -95,6 +95,15 @@ class Sensei_Migrator {
 	 * @access private
 	 */
 	public static function render_sensei_dependency_notice(): void {
+		if ( ! current_user_can( 'activate_plugins' ) ) {
+			return;
+		}
+
+		$screen = get_current_screen();
+		if ( ! $screen || ! in_array( $screen->id, array( 'dashboard', 'plugins', 'plugins-network' ), true ) ) {
+			return;
+		}
+
 		$message = defined( 'SENSEI_LMS_VERSION' )
 			? sprintf(
 				/* translators: 1: required Sensei version, 2: detected Sensei version */
@@ -104,6 +113,6 @@ class Sensei_Migrator {
 			)
 			: esc_html__( 'Sensei Migrator requires Sensei LMS to be installed and activated.', 'sensei-migrator' );
 
-		printf( '<div class="notice notice-error"><p>%s</p></div>', $message );
+		wp_admin_notice( $message, array( 'type' => 'error' ) );
 	}
 }
