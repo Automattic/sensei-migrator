@@ -150,7 +150,11 @@ class LearnDash_Source_Adapter implements Source_Adapter {
 				)
 			);
 
-			foreach ( (array) $rows as $row ) {
+			if ( ! is_array( $rows ) ) {
+				throw new \RuntimeException( 'Failed to read from ' . $table . ': ' . ( $wpdb->last_error ?: 'unknown error' ) );
+			}
+
+			foreach ( $rows as $row ) {
 				yield array(
 					'source_id'      => (int) $row->id,
 					'source_quiz_id' => (int) $row->quiz_id,
@@ -167,7 +171,7 @@ class LearnDash_Source_Adapter implements Source_Adapter {
 				);
 			}
 
-			$returned = count( (array) $rows );
+			$returned = count( $rows );
 			$offset  += $batch_size;
 		} while ( $returned === $batch_size );
 	}
@@ -295,7 +299,11 @@ class LearnDash_Source_Adapter implements Source_Adapter {
 			return 0;
 		}
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery
-		return (int) $wpdb->get_var( "SELECT COUNT(*) FROM `{$table}` WHERE online = 1" );
+		$count = $wpdb->get_var( "SELECT COUNT(*) FROM `{$table}` WHERE online = 1" );
+		if ( null === $count ) {
+			throw new \RuntimeException( 'Failed to count rows in ' . $table . ': ' . ( $wpdb->last_error ?: 'unknown error' ) );
+		}
+		return (int) $count;
 	}
 
 	private function fetch_pro_quiz_master( int $pro_quiz_id ): ?\stdClass {
