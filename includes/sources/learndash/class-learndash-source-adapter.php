@@ -104,10 +104,22 @@ class LearnDash_Source_Adapter implements Source_Adapter {
 			$pro_quiz_id = (int) ( $settings['quiz_pro'] ?? 0 );
 			$master_row  = $pro_quiz_id ? $this->fetch_pro_quiz_master( $pro_quiz_id ) : null;
 
+			$source_lesson_id = (int) ( $settings['lesson'] ?? 0 );
+			$source_course_id = (int) ( $settings['course'] ?? 0 );
+			if ( ! $source_course_id && $source_lesson_id ) {
+				$source_course_id = $this->resolve_lesson_course(
+					$source_lesson_id,
+					$this->settings_array( $source_lesson_id, self::META_LESSON_SETTINGS )
+				);
+			}
+			if ( ! $source_lesson_id ) {
+				$source_lesson_id = (int) wp_get_post_parent_id( $post_id );
+			}
+
 			yield array(
 				'source_id'          => (int) $post_id,
-				'source_lesson_id'   => (int) ( $settings['lesson'] ?? 0 ),
-				'source_course_id'   => (int) ( $settings['course'] ?? 0 ),
+				'source_lesson_id'   => $source_lesson_id,
+				'source_course_id'   => $source_course_id,
 				'source_pro_quiz_id' => $pro_quiz_id,
 				'title'              => $post->post_title,
 				'content'            => $post->post_content,
@@ -190,8 +202,8 @@ class LearnDash_Source_Adapter implements Source_Adapter {
 			$settings = $this->settings_array( $post_id, $settings_key );
 
 			$source_course_id = $is_topic
-				? $this->resolve_topic_course( (int) ( $settings['lesson'] ?? 0 ) )
-				: (int) ( $settings['lesson_course'] ?? 0 );
+				? $this->resolve_topic_course( (int) $post_id, (int) ( $settings['lesson'] ?? 0 ) )
+				: $this->resolve_lesson_course( (int) $post_id, $settings );
 
 			yield array(
 				'source_id'           => (int) $post_id,
@@ -240,14 +252,48 @@ class LearnDash_Source_Adapter implements Source_Adapter {
 	}
 
 	/**
-	 * Topics don't store a course id directly; resolve it via their parent lesson's settings.
+	 * Resolves a lesson's owning course. LD has stored the link three different ways
+	 * across versions: inside the `_sfwd-lessons['lesson_course']` serialized field,
+	 * as a standalone `course_id` post meta, and via WordPress post hierarchy. Try each.
 	 */
-	private function resolve_topic_course( int $parent_lesson_id ): int {
-		if ( ! $parent_lesson_id ) {
-			return 0;
+	private function resolve_lesson_course( int $lesson_post_id, array $lesson_settings ): int {
+		$course_id = (int) ( $lesson_settings['lesson_course'] ?? 0 );
+		if ( $course_id ) {
+			return $course_id;
 		}
-		$lesson_settings = $this->settings_array( $parent_lesson_id, self::META_LESSON_SETTINGS );
-		return (int) ( $lesson_settings['lesson_course'] ?? 0 );
+		$course_id = (int) get_post_meta( $lesson_post_id, 'course_id', true );
+		if ( $course_id ) {
+			return $course_id;
+		}
+		return (int) wp_get_post_parent_id( $lesson_post_id );
+	}
+
+	/**
+	 * Resolves a topic's owning course. Topics live under a parent lesson which lives under
+	 * a course; modern LD also stores `course_id` directly on the topic. Try the direct
+	 * meta, then the parent lesson's resolution, then the post-hierarchy walk.
+	 */
+	private function resolve_topic_course( int $topic_post_id, int $parent_lesson_id ): int {
+		$course_id = (int) get_post_meta( $topic_post_id, 'course_id', true );
+		if ( $course_id ) {
+			return $course_id;
+		}
+
+		if ( $parent_lesson_id ) {
+			$course_id = $this->resolve_lesson_course(
+				$parent_lesson_id,
+				$this->settings_array( $parent_lesson_id, self::META_LESSON_SETTINGS )
+			);
+			if ( $course_id ) {
+				return $course_id;
+			}
+		}
+
+		$lesson_id = (int) wp_get_post_parent_id( $topic_post_id );
+		if ( $lesson_id ) {
+			return (int) wp_get_post_parent_id( $lesson_id );
+		}
+		return 0;
 	}
 
 	private function settings_array( int $post_id, string $meta_key ): array {
