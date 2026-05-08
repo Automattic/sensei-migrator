@@ -30,6 +30,8 @@ class LearnDash_Source_Adapter implements Source_Adapter {
 	const META_QUIZ_SETTINGS     = '_sfwd-quiz';
 	const META_QUESTION_SETTINGS = '_sfwd-question';
 
+	const COUNTED_STATUSES = array( 'publish', 'draft', 'private', 'future', 'pending' );
+
 	public function slug(): string {
 		return self::SLUG;
 	}
@@ -234,7 +236,7 @@ class LearnDash_Source_Adapter implements Source_Adapter {
 			$query = new \WP_Query(
 				array(
 					'post_type'      => $post_type,
-					'post_status'    => 'any',
+					'post_status'    => self::COUNTED_STATUSES,
 					'posts_per_page' => $batch_size,
 					'paged'          => $page,
 					'fields'         => 'ids',
@@ -329,8 +331,8 @@ class LearnDash_Source_Adapter implements Source_Adapter {
 	}
 
 	/**
-	 * Sums counts across every post status returned by `wp_count_posts()`,
-	 * including drafts and trash.
+	 * Sums counts for the same post statuses the read methods iterate, so
+	 * `inventory()` and `read_*()` agree on what's in scope.
 	 */
 	private function count_posts( string $post_type ): int {
 		$counts = wp_count_posts( $post_type );
@@ -338,8 +340,8 @@ class LearnDash_Source_Adapter implements Source_Adapter {
 			return 0;
 		}
 		$total = 0;
-		foreach ( (array) $counts as $count ) {
-			$total += (int) $count;
+		foreach ( self::COUNTED_STATUSES as $status ) {
+			$total += isset( $counts->$status ) ? (int) $counts->$status : 0;
 		}
 		return $total;
 	}
