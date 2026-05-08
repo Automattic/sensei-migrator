@@ -358,12 +358,36 @@ class LearnDash_Source_Adapter implements Source_Adapter {
 			}
 			$unserialized = unserialize( $value, array( 'allowed_classes' => false ) );
 			if ( false !== $unserialized ) {
-				return $unserialized;
+				return $this->normalize_unserialized( $unserialized );
 			}
 		}
 		$decoded = json_decode( $value, true );
 		if ( JSON_ERROR_NONE === json_last_error() ) {
 			return $decoded;
+		}
+		return $value;
+	}
+
+	/**
+	 * Recursively converts `__PHP_Incomplete_Class` placeholders into plain associative
+	 * arrays. WP-Pro-Quiz serializes its model objects (e.g. `WpProQuiz_Model_AnswerTypes`),
+	 * but we unserialize with `allowed_classes => false` for safety, so every object comes
+	 * back as a ghost. The data is intact on protected/private properties, just hidden
+	 * behind null-byte-prefixed keys; this strips the prefixes and yields a usable shape.
+	 */
+	private function normalize_unserialized( $value ) {
+		if ( is_array( $value ) ) {
+			return array_map( array( $this, 'normalize_unserialized' ), $value );
+		}
+		if ( $value instanceof \__PHP_Incomplete_Class ) {
+			$props = (array) $value;
+			unset( $props['__PHP_Incomplete_Class_Name'] );
+			$clean = array();
+			foreach ( $props as $key => $prop_value ) {
+				$clean_key           = preg_replace( '/^\0(?:\*|[^\0]+)\0/', '', (string) $key );
+				$clean[ $clean_key ] = $this->normalize_unserialized( $prop_value );
+			}
+			return $clean;
 		}
 		return $value;
 	}
