@@ -70,25 +70,29 @@ class CLI_Command {
 			WP_CLI::warning( '--include-media is not yet implemented; flag ignored.' );
 		}
 
-		$inventory = $adapter->inventory();
-		WP_CLI::log( sprintf( 'Source: %s', $adapter->label() ) );
-		WP_CLI::log( wp_json_encode( $inventory, JSON_PRETTY_PRINT ) );
+		try {
+			$inventory = $adapter->inventory();
+			WP_CLI::log( sprintf( 'Source: %s', $adapter->label() ) );
+			WP_CLI::log( wp_json_encode( $inventory, JSON_PRETTY_PRINT ) );
 
-		if ( ! empty( $assoc_args['dry-run'] ) ) {
-			$preview = array(
-				'first_course'   => $this->first( $adapter->read_courses() ),
-				'first_lesson'   => $this->first( $adapter->read_lessons() ),
-				'first_quiz'     => $this->first( $adapter->read_quizzes() ),
-				'first_question' => $this->first( $adapter->read_questions() ),
-			);
-			WP_CLI::log( '' );
-			WP_CLI::log( 'Dry-run preview (first record per type):' );
-			WP_CLI::log( wp_json_encode( $preview, JSON_PRETTY_PRINT ) );
-			WP_CLI::success( 'Dry-run complete. No data written.' );
-			return;
+			if ( ! empty( $assoc_args['dry-run'] ) ) {
+				$preview = array(
+					'first_course'   => $this->first( $adapter->read_courses() ),
+					'first_lesson'   => $this->first( $adapter->read_lessons() ),
+					'first_quiz'     => $this->first( $adapter->read_quizzes() ),
+					'first_question' => $this->first( $adapter->read_questions() ),
+				);
+				WP_CLI::log( '' );
+				WP_CLI::log( 'Dry-run preview (first record per type):' );
+				WP_CLI::log( wp_json_encode( $preview, JSON_PRETTY_PRINT ) );
+				WP_CLI::success( 'Dry-run complete. No data written.' );
+				return;
+			}
+
+			WP_CLI::warning( 'Live migration is not yet implemented. Re-run with --dry-run for now.' );
+		} catch ( \Throwable $e ) {
+			WP_CLI::error( $e->getMessage() );
 		}
-
-		WP_CLI::warning( 'Live migration is not yet implemented. Re-run with --dry-run for now.' );
 	}
 
 	/**
