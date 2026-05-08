@@ -10,11 +10,8 @@ namespace Sensei_Migrator\Core;
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Each method returning records returns an iterable of associative arrays.
- *
- * Record shapes are documented in includes/core/record-shapes.md and validated by
- * Sensei_Migrator\Core\Record_Validator. Adapters are responsible for normalizing
- * source-specific quirks before yielding.
+ * Each method returning records returns an iterable of associative arrays. Adapters
+ * are responsible for normalizing source-specific quirks before yielding.
  */
 interface Source_Adapter {
 
