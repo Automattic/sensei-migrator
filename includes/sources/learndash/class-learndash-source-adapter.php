@@ -64,17 +64,7 @@ class LearnDash_Source_Adapter implements Source_Adapter {
 	}
 
 	public function read_courses(): iterable {
-		$query = new \WP_Query(
-			array(
-				'post_type'      => self::POST_TYPE_COURSE,
-				'post_status'    => 'any',
-				'posts_per_page' => -1,
-				'fields'         => 'ids',
-				'no_found_rows'  => true,
-			)
-		);
-
-		foreach ( $query->posts as $post_id ) {
+		foreach ( $this->paginated_post_ids( self::POST_TYPE_COURSE ) as $post_id ) {
 			$post = get_post( $post_id );
 			if ( ! $post ) {
 				continue;
@@ -96,8 +86,6 @@ class LearnDash_Source_Adapter implements Source_Adapter {
 				'prerequisite'     => $this->normalize_int_list( $settings['course_prerequisite'] ?? array() ),
 			);
 		}
-
-		wp_reset_postdata();
 	}
 
 	public function read_lessons(): iterable {
@@ -106,17 +94,7 @@ class LearnDash_Source_Adapter implements Source_Adapter {
 	}
 
 	public function read_quizzes(): iterable {
-		$query = new \WP_Query(
-			array(
-				'post_type'      => self::POST_TYPE_QUIZ,
-				'post_status'    => 'any',
-				'posts_per_page' => -1,
-				'fields'         => 'ids',
-				'no_found_rows'  => true,
-			)
-		);
-
-		foreach ( $query->posts as $post_id ) {
+		foreach ( $this->paginated_post_ids( self::POST_TYPE_QUIZ ) as $post_id ) {
 			$post = get_post( $post_id );
 			if ( ! $post ) {
 				continue;
@@ -142,8 +120,6 @@ class LearnDash_Source_Adapter implements Source_Adapter {
 				'attempts_allowed'   => (string) ( $settings['repeats'] ?? '' ),
 			);
 		}
-
-		wp_reset_postdata();
 	}
 
 	public function read_questions(): iterable {
@@ -154,31 +130,44 @@ class LearnDash_Source_Adapter implements Source_Adapter {
 			return;
 		}
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Source-side read; cache not relevant during one-shot migration.
-		$rows = $wpdb->get_results(
-			"SELECT id, quiz_id, online, sort, title, question, points, answer_type,
-			        answer_data, tip_msg, correct_msg, incorrect_msg, category_id
-			 FROM `{$table}`
-			 WHERE online = 1
-			 ORDER BY quiz_id ASC, sort ASC"
-		);
+		$batch_size = 200;
+		$offset     = 0;
 
-		foreach ( (array) $rows as $row ) {
-			yield array(
-				'source_id'      => (int) $row->id,
-				'source_quiz_id' => (int) $row->quiz_id,
-				'sort'           => (int) $row->sort,
-				'title'          => (string) $row->title,
-				'question_html'  => (string) $row->question,
-				'points'         => (int) $row->points,
-				'answer_type'    => (string) $row->answer_type,
-				'answer_data'    => $this->maybe_unserialize( (string) $row->answer_data ),
-				'tip'            => $row->tip_msg !== '' ? (string) $row->tip_msg : null,
-				'correct_msg'    => $row->correct_msg !== '' ? (string) $row->correct_msg : null,
-				'incorrect_msg'  => $row->incorrect_msg !== '' ? (string) $row->incorrect_msg : null,
-				'category_id'    => (int) $row->category_id,
+		do {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Source-side read; cache not relevant during one-shot migration.
+			$rows = $wpdb->get_results(
+				$wpdb->prepare(
+					"SELECT id, quiz_id, online, sort, title, question, points, answer_type,
+					        answer_data, tip_msg, correct_msg, incorrect_msg, category_id
+					 FROM `{$table}`
+					 WHERE online = 1
+					 ORDER BY quiz_id ASC, sort ASC, id ASC
+					 LIMIT %d OFFSET %d",
+					$batch_size,
+					$offset
+				)
 			);
-		}
+
+			foreach ( (array) $rows as $row ) {
+				yield array(
+					'source_id'      => (int) $row->id,
+					'source_quiz_id' => (int) $row->quiz_id,
+					'sort'           => (int) $row->sort,
+					'title'          => (string) $row->title,
+					'question_html' => (string) $row->question,
+					'points'         => (int) $row->points,
+					'answer_type'    => (string) $row->answer_type,
+					'answer_data'    => $this->maybe_unserialize( (string) $row->answer_data ),
+					'tip'            => $row->tip_msg !== '' ? (string) $row->tip_msg : null,
+					'correct_msg'    => $row->correct_msg !== '' ? (string) $row->correct_msg : null,
+					'incorrect_msg'  => $row->incorrect_msg !== '' ? (string) $row->incorrect_msg : null,
+					'category_id'    => (int) $row->category_id,
+				);
+			}
+
+			$returned = count( (array) $rows );
+			$offset  += $batch_size;
+		} while ( $returned === $batch_size );
 	}
 
 	public function read_enrollments(): iterable {
@@ -192,17 +181,7 @@ class LearnDash_Source_Adapter implements Source_Adapter {
 	private function read_lesson_like( string $post_type, bool $is_topic ): iterable {
 		$settings_key = $is_topic ? self::META_TOPIC_SETTINGS : self::META_LESSON_SETTINGS;
 
-		$query = new \WP_Query(
-			array(
-				'post_type'      => $post_type,
-				'post_status'    => 'any',
-				'posts_per_page' => -1,
-				'fields'         => 'ids',
-				'no_found_rows'  => true,
-			)
-		);
-
-		foreach ( $query->posts as $post_id ) {
+		foreach ( $this->paginated_post_ids( $post_type ) as $post_id ) {
 			$post = get_post( $post_id );
 			if ( ! $post ) {
 				continue;
@@ -229,8 +208,35 @@ class LearnDash_Source_Adapter implements Source_Adapter {
 				'duration'            => (string) ( $settings[ $is_topic ? 'topic_duration' : 'lesson_duration' ] ?? '' ),
 			);
 		}
+	}
 
-		wp_reset_postdata();
+	/**
+	 * Walks all post IDs of a given type in fixed-size batches, streaming one ID at
+	 * a time so callers never hold the whole result set in memory.
+	 */
+	private function paginated_post_ids( string $post_type ): iterable {
+		$batch_size = 200;
+		$page       = 1;
+
+		do {
+			$query = new \WP_Query(
+				array(
+					'post_type'      => $post_type,
+					'post_status'    => 'any',
+					'posts_per_page' => $batch_size,
+					'paged'          => $page,
+					'fields'         => 'ids',
+					'no_found_rows'  => true,
+				)
+			);
+
+			foreach ( $query->posts as $post_id ) {
+				yield $post_id;
+			}
+
+			$returned = count( $query->posts );
+			++$page;
+		} while ( $returned === $batch_size );
 	}
 
 	/**
