@@ -339,14 +339,18 @@ class LearnDash_Source_Adapter implements Source_Adapter {
 	/**
 	 * WP-Pro-Quiz historically stores answer_data as PHP-serialized objects, though
 	 * some installations have JSON. Try serialized first, then JSON, otherwise pass
-	 * the raw string through.
+	 * the raw string through. `b:0;` is a valid serialized boolean false and would
+	 * otherwise be indistinguishable from an unserialize failure.
 	 */
 	private function maybe_unserialize( string $value ) {
 		if ( '' === $value ) {
 			return null;
 		}
 		if ( is_serialized( $value ) ) {
-			$unserialized = @unserialize( $value, array( 'allowed_classes' => false ) ); // phpcs:ignore WordPress.PHP.NoSilencedErrors
+			if ( 'b:0;' === $value ) {
+				return false;
+			}
+			$unserialized = unserialize( $value, array( 'allowed_classes' => false ) );
 			if ( false !== $unserialized ) {
 				return $unserialized;
 			}
