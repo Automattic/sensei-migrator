@@ -19,6 +19,11 @@ defined( 'ABSPATH' ) || exit;
  */
 class CLI_Command {
 
+	/**
+	 * Register the WP-CLI command. Called once from the main plugin bootstrap.
+	 *
+	 * @access private
+	 */
 	public static function register(): void {
 		if ( ! defined( 'WP_CLI' ) || ! WP_CLI ) {
 			return;
@@ -49,6 +54,8 @@ class CLI_Command {
 	 *     wp sensei migrate run --from=learndash --include-media --include-enrollments
 	 *
 	 * @when after_wp_load
+	 *
+	 * @access private
 	 */
 	public function run( array $args, array $assoc_args ): void {
 		$adapter = $this->resolve_adapter( $assoc_args );
@@ -82,6 +89,8 @@ class CLI_Command {
 	 *     wp sensei migrate sources
 	 *
 	 * @when after_wp_load
+	 *
+	 * @access private
 	 */
 	public function sources( array $args, array $assoc_args ): void {
 		$registry = $this->registry();

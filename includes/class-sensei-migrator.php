@@ -17,6 +17,11 @@ class Sensei_Migrator {
 
 	private static ?Source_Registry $registry = null;
 
+	/**
+	 * Hooked on plugins_loaded.
+	 *
+	 * @access private
+	 */
 	public static function init(): void {
 		if ( ! self::sensei_is_compatible() ) {
 			add_action( 'admin_notices', array( self::class, 'render_sensei_dependency_notice' ) );
@@ -46,6 +51,11 @@ class Sensei_Migrator {
 		return $registry;
 	}
 
+	/**
+	 * Activation hook callback.
+	 *
+	 * @access private
+	 */
 	public static function on_activation(): void {
 		if ( ! self::sensei_is_compatible() ) {
 			deactivate_plugins( plugin_basename( SENSEI_MIGRATOR_FILE ) );
@@ -63,6 +73,11 @@ class Sensei_Migrator {
 		}
 	}
 
+	/**
+	 * Deactivation hook callback.
+	 *
+	 * @access private
+	 */
 	public static function on_deactivation(): void {
 	}
 
@@ -74,6 +89,11 @@ class Sensei_Migrator {
 		return version_compare( SENSEI_LMS_VERSION, SENSEI_MIGRATOR_MIN_SENSEI_VERSION, '>=' );
 	}
 
+	/**
+	 * Hooked on admin_notices when Sensei is missing or below the required version.
+	 *
+	 * @access private
+	 */
 	public static function render_sensei_dependency_notice(): void {
 		$message = defined( 'SENSEI_LMS_VERSION' )
 			? sprintf(
