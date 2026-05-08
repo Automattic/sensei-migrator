@@ -13,7 +13,7 @@ use Sensei_Migrator\Sources\LearnDash\LearnDash_Source_Adapter;
 
 defined( 'ABSPATH' ) || exit;
 
-class Plugin {
+class Sensei_Migrator {
 
 	private static ?Source_Registry $registry = null;
 
@@ -64,7 +64,6 @@ class Plugin {
 	}
 
 	public static function on_deactivation(): void {
-		// Reserved for future cleanup of in-flight migration jobs.
 	}
 
 	private static function sensei_is_compatible(): bool {

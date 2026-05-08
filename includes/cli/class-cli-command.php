@@ -9,7 +9,7 @@ namespace Sensei_Migrator\CLI;
 
 use Sensei_Migrator\Core\Source_Adapter;
 use Sensei_Migrator\Core\Source_Registry;
-use Sensei_Migrator\Plugin;
+use Sensei_Migrator\Sensei_Migrator;
 use WP_CLI;
 
 defined( 'ABSPATH' ) || exit;
@@ -123,7 +123,7 @@ class CLI_Command {
 	}
 
 	private function registry(): Source_Registry {
-		$registry = Plugin::registry();
+		$registry = Sensei_Migrator::registry();
 		if ( ! $registry ) {
 			WP_CLI::error( 'Sensei Migrator is not initialized. Is Sensei LMS active?' );
 		}

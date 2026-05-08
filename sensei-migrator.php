@@ -24,12 +24,13 @@ define( 'SENSEI_MIGRATOR_URL', plugin_dir_url( __FILE__ ) );
 // extension points the migrator depends on.
 define( 'SENSEI_MIGRATOR_MIN_SENSEI_VERSION', '4.25.2' );
 
-require_once SENSEI_MIGRATOR_PATH . 'includes/class-autoloader.php';
-Autoloader::register();
+require_once SENSEI_MIGRATOR_PATH . 'includes/core/interface-source-adapter.php';
+require_once SENSEI_MIGRATOR_PATH . 'includes/core/class-source-registry.php';
+require_once SENSEI_MIGRATOR_PATH . 'includes/sources/learndash/class-learndash-source-adapter.php';
+require_once SENSEI_MIGRATOR_PATH . 'includes/cli/class-cli-command.php';
+require_once SENSEI_MIGRATOR_PATH . 'includes/class-sensei-migrator.php';
 
-require_once SENSEI_MIGRATOR_PATH . 'includes/class-plugin.php';
+register_activation_hook( __FILE__, array( Sensei_Migrator::class, 'on_activation' ) );
+register_deactivation_hook( __FILE__, array( Sensei_Migrator::class, 'on_deactivation' ) );
 
-register_activation_hook( __FILE__, array( Plugin::class, 'on_activation' ) );
-register_deactivation_hook( __FILE__, array( Plugin::class, 'on_deactivation' ) );
-
-add_action( 'plugins_loaded', array( Plugin::class, 'init' ), 20 );
+add_action( 'plugins_loaded', array( Sensei_Migrator::class, 'init' ), 20 );
