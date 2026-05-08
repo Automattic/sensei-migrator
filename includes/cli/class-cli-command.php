@@ -55,6 +55,9 @@ class CLI_Command {
 	 *
 	 * @when after_wp_load
 	 *
+	 * @param array $args       Positional CLI args (unused).
+	 * @param array $assoc_args Associative CLI flags.
+	 *
 	 * @access private
 	 */
 	public function run( array $args, array $assoc_args ): void {
@@ -96,6 +99,9 @@ class CLI_Command {
 	 *     wp sensei migrate sources
 	 *
 	 * @when after_wp_load
+	 *
+	 * @param array $args       Positional CLI args (unused).
+	 * @param array $assoc_args Associative CLI flags (unused).
 	 *
 	 * @access private
 	 */
