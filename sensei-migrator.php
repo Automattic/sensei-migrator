@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Sensei Migrator
  * Description: Migrate course content, media, and enrolled students into Sensei LMS from other learning platforms. Ships with a LearnDash source adapter; designed to host additional sources.
- * Version: 0.1.0
+ * Version: 1.0.0
  * Requires at least: 6.7
  * Requires PHP: 7.4
  * Author: Automattic
@@ -16,13 +16,11 @@ namespace Sensei_Migrator;
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'SENSEI_MIGRATOR_VERSION', '0.1.0' );
+define( 'SENSEI_MIGRATOR_VERSION', '1.0.0' );
 define( 'SENSEI_MIGRATOR_FILE', __FILE__ );
 define( 'SENSEI_MIGRATOR_PATH', plugin_dir_path( __FILE__ ) );
 define( 'SENSEI_MIGRATOR_URL', plugin_dir_url( __FILE__ ) );
-// Floor for now; bumped to whichever Sensei release ships the data-port
-// extension points the migrator depends on.
-define( 'SENSEI_MIGRATOR_MIN_SENSEI_VERSION', '4.25.2' );
+define( 'SENSEI_MIGRATOR_MIN_SENSEI_VERSION', '4.26.0' );
 
 require_once SENSEI_MIGRATOR_PATH . 'includes/core/interface-source-adapter.php';
 require_once SENSEI_MIGRATOR_PATH . 'includes/core/class-source-registry.php';
