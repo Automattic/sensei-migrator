@@ -13,9 +13,6 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * Reads LearnDash CPT and `wp_pro_quiz_*` data directly from the site DB.
- *
- * Phase 1: read paths return normalized records suitable for the dry-run preview.
- * Phase 2 fills in the write side; this class stays read-only.
  */
 class LearnDash_Source_Adapter implements Source_Adapter {
 
@@ -38,7 +35,7 @@ class LearnDash_Source_Adapter implements Source_Adapter {
 	}
 
 	public function label(): string {
-		return __( 'LearnDash', 'sensei-migrator' );
+		return 'LearnDash';
 	}
 
 	public function detect(): bool {
@@ -62,7 +59,7 @@ class LearnDash_Source_Adapter implements Source_Adapter {
 				+ $this->count_posts( self::POST_TYPE_TOPIC ),
 			'quizzes'     => $this->count_posts( self::POST_TYPE_QUIZ ),
 			'questions'   => $this->count_pro_quiz_questions(),
-			'enrollments' => 0, // Phase 3.
+			'enrollments' => 0,
 		);
 	}
 
@@ -185,10 +182,13 @@ class LearnDash_Source_Adapter implements Source_Adapter {
 	}
 
 	public function read_enrollments(): iterable {
-		// Phase 3.
 		return array();
 	}
 
+	/**
+	 * Yields lesson records. Topics are read with `$is_topic = true` and emitted as lessons
+	 * with `is_topic` set so the field mapper can flatten them into Sensei's flat lesson list.
+	 */
 	private function read_lesson_like( string $post_type, bool $is_topic ): iterable {
 		$settings_key = $is_topic ? self::META_TOPIC_SETTINGS : self::META_LESSON_SETTINGS;
 
@@ -233,6 +233,9 @@ class LearnDash_Source_Adapter implements Source_Adapter {
 		wp_reset_postdata();
 	}
 
+	/**
+	 * Topics don't store a course id directly; resolve it via their parent lesson's settings.
+	 */
 	private function resolve_topic_course( int $parent_lesson_id ): int {
 		if ( ! $parent_lesson_id ) {
 			return 0;
@@ -246,6 +249,10 @@ class LearnDash_Source_Adapter implements Source_Adapter {
 		return is_array( $value ) ? $value : array();
 	}
 
+	/**
+	 * Returns the pass mark on a 0-100 scale. `passingpercentage` is already 0-100;
+	 * `threshold` is stored 0-1 and is scaled up.
+	 */
 	private function normalize_passmark( array $settings ): float {
 		if ( isset( $settings['passingpercentage'] ) ) {
 			return (float) $settings['passingpercentage'];
@@ -256,6 +263,9 @@ class LearnDash_Source_Adapter implements Source_Adapter {
 		return 0.0;
 	}
 
+	/**
+	 * Coerces a mixed value (array, comma-separated string, or empty) into a list of ints.
+	 */
 	private function normalize_int_list( $value ): array {
 		if ( is_array( $value ) ) {
 			return array_values( array_filter( array_map( 'intval', $value ) ) );
@@ -266,6 +276,10 @@ class LearnDash_Source_Adapter implements Source_Adapter {
 		return array();
 	}
 
+	/**
+	 * Sums counts across every post status returned by `wp_count_posts()`,
+	 * including drafts and trash.
+	 */
 	private function count_posts( string $post_type ): int {
 		$counts = wp_count_posts( $post_type );
 		if ( ! $counts ) {

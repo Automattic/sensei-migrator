@@ -43,7 +43,7 @@ class CLI_Command {
 	 * : Inspect source content and print a summary without writing to Sensei.
 	 *
 	 * [--include-enrollments]
-	 * : Include enrolled students. Disabled by default until Phase 3 lands.
+	 * : Include enrolled students.
 	 *
 	 * [--include-media]
 	 * : Sideload images and other media referenced from source content.
@@ -78,7 +78,7 @@ class CLI_Command {
 			return;
 		}
 
-		WP_CLI::warning( 'Live migration is not yet implemented (Phase 2). Re-run with --dry-run for now.' );
+		WP_CLI::warning( 'Live migration is not yet implemented. Re-run with --dry-run for now.' );
 	}
 
 	/**
