@@ -60,6 +60,13 @@ class CLI_Command {
 	public function run( array $args, array $assoc_args ): void {
 		$adapter = $this->resolve_adapter( $assoc_args );
 
+		if ( ! empty( $assoc_args['include-enrollments'] ) ) {
+			WP_CLI::warning( '--include-enrollments is not yet implemented; flag ignored.' );
+		}
+		if ( ! empty( $assoc_args['include-media'] ) ) {
+			WP_CLI::warning( '--include-media is not yet implemented; flag ignored.' );
+		}
+
 		$inventory = $adapter->inventory();
 		WP_CLI::log( sprintf( 'Source: %s', $adapter->label() ) );
 		WP_CLI::log( wp_json_encode( $inventory, JSON_PRETTY_PRINT ) );
