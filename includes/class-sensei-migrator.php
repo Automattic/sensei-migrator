@@ -57,20 +57,6 @@ class Sensei_Migrator {
 	 * @access private
 	 */
 	public static function on_activation(): void {
-		if ( ! self::sensei_is_compatible() ) {
-			deactivate_plugins( plugin_basename( SENSEI_MIGRATOR_FILE ) );
-			wp_die(
-				esc_html(
-					sprintf(
-						/* translators: %s: minimum required Sensei version */
-						__( 'Sensei Migrator requires Sensei LMS %s or later. Please install or update Sensei before activating this plugin.', 'sensei-migrator' ),
-						SENSEI_MIGRATOR_MIN_SENSEI_VERSION
-					)
-				),
-				esc_html__( 'Sensei Migrator', 'sensei-migrator' ),
-				array( 'back_link' => true )
-			);
-		}
 	}
 
 	/**
